@@ -1,0 +1,115 @@
+# Designed to implement the Proflow using Circle CI and GitHub
+manuscript:
+  props:
+  scene:
+    dryrun:  0
+    verbose: 1
+    debug:   0
+  parts:
+    integrate:
+      props:
+        - PLAY_TARGETBRANCH:   ${PLAY_TARGETBRANCH:=master} # Preset the variable to override default
+        - PLAY_REMOTEREPO:     ${PLAY_REMOTEREPO:=origin}   # Preset the variable to override default
+      scene:
+        verbose: 1
+        dryrun:  0
+        debug:   0
+      lines:
+        - run:
+            caption: Rebase to remote target branch
+            command: git rebase $PLAY_REMOTEREPO/$PLAY_TARGETBRANCH
+            die_on_err: yes
+        - run:
+            caption: Checkout target branch
+            command: git checkout $PLAY_TARGETBRANCH
+            die_on_err: yes
+        - run:
+            name: Pull from remote
+            command: git pull $PLAY_REMOTER
+        - run:
+            caption: Merge the ready-branch into target branch
+            command: git merge --ff-only $CIRCLE_BRANCH
+            die_on_err: yes
+
+    write-version-to-file:
+      props:
+        - PLAY_REPOSITORY:     '`printenv CIRCLE_REPOSITORY_URL | sed  s/".*github.com[\/:]//" | sed s/.git//`'
+      scene:
+        verbose: 1
+      lines:
+        - run:
+            caption: Capture version in versions.txt
+            command: echo "Built from GitHub repo $PLAY_REPOSITORY version `git rev-parse --short HEAD`" > version.txt
+        - run:
+            command: cat version.txt
+
+    ghpages_deploy:
+      props:
+      scene:
+        verbose: yes
+      lines:
+        - run:
+            command: git init
+            die_on_err: yes
+        - run:
+            command: git config push.default current
+            die_on_err: yes
+        - run:
+            command: git config user.name "$PLAY_USER_NAME"
+            die_on_err: yes
+        - run:
+            command: git config user.name
+        - run:
+            command: git config user.email "$PLAY_USER_EMAIL"
+            die_on_err: yes
+        - run:
+            command: git config user.email
+        - run:
+            caption: Add a remote that has permissions to write
+            command: git remote add stage https://$PHLOW_GHTOKEN@github.com/$PLAY_TARGET_GH_REPO.git
+            die_on_err: yes
+        - run:
+            command: git add -A .
+            die_on_err: yes
+        - run:
+            command: git commit -F version.txt
+            die_on_err: yes
+        - run:
+            name: Git push using force, keep depth of target just 1
+            command: git push -f stage master
+            die_on_err: yes
+
+    deliver:
+      props:
+        - PLAY_REPOSITORY: '`printenv CIRCLE_REPOSITORY_URL | sed  s/".*github.com[\/:]//" | sed s/.git//`'
+      scene:
+        dryrun:  no
+        verbose: yes
+      lines:
+        - run:
+            caption: Add a remote that has permissions to write
+            command: git remote add integrated https://$PHLOW_GHTOKEN@github.com/$PLAY_REPOSITORY.git
+            die_on_err: yes
+        - run:
+            caption: Push current branch to GitHub
+            command: git push integrated
+            die_on_err: yes
+        - run:
+            caption: Delete the remote triggering branch
+            command: git push integrated :$CIRCLE_BRANCH
+            die_on_err: yes
+
+    git_set_user:
+      props:
+      scene:
+        dryrun: no
+        verbose: yes
+      lines:
+        - run:
+            caption: Set the git user.name
+            command: git config user.name "$PLAY_USER_NAME"
+            die_on_err: yes
+        - run:
+            caption: Set the git.user.email
+            command: git config user.email "$PLAY_USER_EMAIL"
+            die_on_err: yes
