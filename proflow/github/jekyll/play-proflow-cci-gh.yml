@@ -85,6 +85,7 @@ manuscript:
       scene:
         dryrun:  no
         verbose: yes
+        debug:   no
       lines:
         - run:
             caption: Add a remote that has permissions to write
