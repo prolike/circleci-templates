@@ -11,7 +11,7 @@ TMP_SRC=https://raw.githubusercontent.com/prolike/circleci-templates/master/prof
 mkdir .circleci && cd $_
 curl -O $TMP_SRC/config.yml
 curl -O  $TMP_SRC/play-proflow-cci-gh.yml
-TMP_SRC= # cleaning up
+cd .. && TMP_SRC= # cleaning up
 ```
 
 ...hmm, that's it!
