@@ -28,6 +28,8 @@ Let's say that:
 The ultra short version of a `.circleci/config.yml` that could accoplish something like that looks like this:
 
 ```yaml
+
+version: 2
 jobs:
   path-trigger:
     working_directory: /app
@@ -38,13 +40,17 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Run if we should
+          name: Check the changeset for a match in $CIRCLE_PLAY_PATH_REGEXP
           command: |
-            export PLAY_RUN=$(git diff-tree  --no-commit-id --name-only -r $CIRCLE_SHA1 \
-              | grep -e "$CIRCLE_PLAY_PATH_REGEXP")
-            [[ -z "$PLAY_RUN" ]] \
-              && echo "Not my call!" \
-              || echo "Yeeah! We have work to do, run your script here!"
+            if [[ \
+              $(git diff-tree  --no-commit-id --name-only -r `git rev-parse --short HEAD` \
+              | grep -e "$CIRCLE_PLAY_PATH_REGEXP") ]];\
+            then \
+              echo "Yeeah! We have work to do, run your script here"; \
+            else \
+              echo "Not my call\!";\
+            fi;
+
 workflows:
   version: 2
   Proflow:
@@ -53,6 +59,7 @@ workflows:
           filters:
             branches:
               only: /^master$/
+
 ```
 
-But explore the actual [`.config.yml`](../config.yml), it's a bit more elaborate, and explains some of the nitty gritty details.
+But explore the actual [`.config.yml`](../config.yml), it's a bit more elaborate.
